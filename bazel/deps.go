@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/golang/glog"
@@ -99,19 +100,33 @@ func (n *TargetNode) GetName() string {
 	}
 }
 
+func (n *TargetNode) GetDeps() []string {
+	switch n.Target.GetType() {
+	case bpb.Target_RULE:
+		return n.Target.GetRule().GetRuleInput()
+	}
+	return nil
+}
+
+func (n *TargetNode) String() string {
+	return fmt.Sprintf("Hash:%d Deps:%v Target:%+v", n.Hash, n.Deps, n.Target)
+}
+
 func CalcTargetHashes(universe []string) (map[string]uint32, error) {
 	hashes := map[string]uint32{}
 	targets, err := cqueryDeps(universe)
 	if err != nil {
 		return nil, fmt.Errorf("can't calculate target hashes: %v", err)
 	}
-	for _, t := range targets {
-		hashes[t.GetName()] = t.GetHash()
+	for name, target := range targets {
+		hashes[name] = target.GetHash()
 	}
+	debugPrint(hashes["//proto:build.proto"])
+
 	return hashes, nil
 }
 
-func cqueryDeps(targets []string) ([]*TargetNode, error) {
+func cqueryDeps(targets []string) (map[string]*TargetNode, error) {
 	cmd := exec.Command("bazel", "cquery", fmt.Sprintf("deps(%s)", strings.Join(targets, ", ")), "--output=textproto")
 	cmd.Dir = os.Getenv("BUILD_WORKSPACE_DIRECTORY")
 	output, err := cmd.Output()
@@ -124,12 +139,30 @@ func cqueryDeps(targets []string) ([]*TargetNode, error) {
 		return nil, fmt.Errorf("error unmarshaling `bazel cquery` output: %v", err)
 	}
 
-	var targetNodes []*TargetNode
+	targetNodes := map[string]*TargetNode{}
 	for _, r := range results.Results {
 		for _, t := range r.Target {
-			targetNodes = append(targetNodes, &TargetNode{Target: t})
+			newNode := &TargetNode{Target: t}
+			targetNodes[newNode.GetName()] = newNode
 		}
+	}
+	for _, target := range targetNodes {
+		for _, depName := range target.GetDeps() {
+			depNode, ok := targetNodes[depName]
+			if !ok {
+				glog.Warningf("target %q not found", depName)
+				continue
+			}
+			target.Deps = append(target.Deps, depNode)
+		}
+		sort.Slice(target.Deps, func(i, j int) bool {
+			return target.Deps[i].GetName() < target.Deps[j].GetName()
+		})
 	}
 
 	return targetNodes, nil
+}
+
+func debugPrint(v interface{}) {
+	fmt.Printf("%+v\n", v)
 }
