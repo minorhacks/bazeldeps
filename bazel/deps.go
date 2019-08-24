@@ -50,12 +50,12 @@ func workspacePath(p string) string {
 func hashFile(h hash.Hash, path string) error {
 	f, err := os.Open(path)
 	if err != nil {
-		return fmt.Errorf("can't open file %s: %v", path, err)
+		return fmt.Errorf("can't open file for hashing: %v", err)
 	}
 	defer f.Close()
 	_, err = io.Copy(h, f)
 	if err != nil {
-		return fmt.Errorf("can't read file %s: %v", path, err)
+		return fmt.Errorf("can't read file for hashing: %v", err)
 	}
 	return nil
 }
