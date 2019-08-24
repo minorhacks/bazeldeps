@@ -1,0 +1,8 @@
+cc_binary(
+    name = "calculator",
+    srcs = ["calc.cc"],
+    deps = [
+        "//math:add",
+        "//math:mul",
+    ],
+)

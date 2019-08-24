@@ -1,0 +1,15 @@
+package(
+    default_visibility = ["//calculator:__subpackages__"],
+)
+
+cc_library(
+    name = "add",
+    hdrs = ["add.h"],
+    srcs = ["add.cc"],
+)
+
+cc_library(
+    name = "mul",
+    hdrs = ["mul.h"],
+    srcs = ["mul.cc"],
+)

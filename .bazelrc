@@ -1,0 +1,2 @@
+# Color compiler output
+build --copt=-fdiagnostics-color
