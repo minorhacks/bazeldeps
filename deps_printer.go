@@ -10,8 +10,16 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/golang/glog"
 	flag "github.com/spf13/pflag"
 	"gitlab.com/minorhacks/bazeldeps/bazel"
+)
+
+var (
+	diffTarget = flag.String("diff_target", "local_changes",
+		"Changes to compare for affected target. Options are:\n"+
+			"  `local_changes`: Diffs local changes from last commit\n"+
+			"  `last_commits`: Diffs last commit against its predecessor")
 )
 
 func gitCurrentCheckout() (string, error) {
@@ -39,6 +47,23 @@ func resolveCommitHash(commitish string) (string, error) {
 	return string(bytes.TrimSpace(out)), nil
 }
 
+func gitCheckoutWithRestore(commitish string) (func(), error) {
+	currentCheckout, err := gitCurrentCheckout()
+	if err != nil {
+		return nil, fmt.Errorf("can't save current checkout: %v", err)
+	}
+	err = gitCheckout(commitish)
+	if err != nil {
+		return nil, err
+	}
+	return func() {
+		err := gitCheckout(currentCheckout)
+		if err != nil {
+			glog.Exitf("error while restoring to commit %s: %v", currentCheckout, err)
+		}
+	}, nil
+}
+
 func gitCheckout(commitish string) error {
 	cmd := exec.Command("git", "checkout", commitish)
 	cmd.Dir = os.Getenv("BUILD_WORKSPACE_DIRECTORY")
@@ -63,18 +88,13 @@ func diff(last, cur map[string]uint32) map[string]uint32 {
 func main() {
 	flag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 	flag.Parse()
-	currentCommit, err := gitCurrentCheckout()
-	exitIf(err)
-	lastCommit, err := resolveCommitHash("HEAD~1")
-	exitIf(err)
+	exitIf(checkFlags())
 
-	err = gitCheckout(lastCommit)
+	restore, err := gitCheckoutWithRestore("HEAD~1")
 	exitIf(err)
 	lastHashes, err := bazel.CalcTargetHashes([]string{"//..."})
 	exitIf(err)
-
-	err = gitCheckout(currentCommit)
-	exitIf(err)
+	restore()
 	currentHashes, err := bazel.CalcTargetHashes([]string{"//..."})
 	exitIf(err)
 
@@ -87,7 +107,16 @@ func main() {
 
 func exitIf(err error) {
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
+		glog.Exit(err)
 	}
+}
+
+func checkFlags() error {
+	switch *diffTarget {
+	case "local_changes":
+	case "last_commits":
+	default:
+		return fmt.Errorf("--diff_target must be one of [local_changes, last_commits]")
+	}
+	return nil
 }
