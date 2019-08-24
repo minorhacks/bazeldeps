@@ -9,7 +9,10 @@ go_library(
     srcs = ["deps_printer.go"],
     importpath = "gitlab.com/minorhacks/bazeldeps",
     visibility = ["//visibility:private"],
-    deps = ["//bazel:go_default_library"],
+    deps = [
+        "//bazel:go_default_library",
+        "@com_github_spf13_pflag//:go_default_library",
+    ],
 )
 
 go_binary(

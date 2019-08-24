@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"flag"
+	goflag "flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 
+	flag "github.com/spf13/pflag"
 	"gitlab.com/minorhacks/bazeldeps/bazel"
 )
 
@@ -60,6 +61,7 @@ func diff(last, cur map[string]uint32) map[string]uint32 {
 }
 
 func main() {
+	flag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 	flag.Parse()
 	currentCommit, err := gitCurrentCheckout()
 	exitIf(err)

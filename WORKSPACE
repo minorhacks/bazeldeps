@@ -38,3 +38,9 @@ go_repository(
     commit = "23def4e6c14b4da8ac2ed8007337bc5eb5007998",
     importpath = "github.com/golang/glog",
 )
+
+go_repository(
+    name = "com_github_spf13_pflag",
+    commit = "298182f68c66c05229eb03ac171abe6e309ee79a",
+    importpath = "github.com/spf13/pflag",
+)
