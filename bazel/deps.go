@@ -121,7 +121,6 @@ func CalcTargetHashes(universe []string) (map[string]uint32, error) {
 	for name, target := range targets {
 		hashes[name] = target.GetHash()
 	}
-	debugPrint(hashes["//proto:build.proto"])
 
 	return hashes, nil
 }
@@ -161,8 +160,4 @@ func cqueryDeps(targets []string) (map[string]*TargetNode, error) {
 	}
 
 	return targetNodes, nil
-}
-
-func debugPrint(v interface{}) {
-	fmt.Printf("%+v\n", v)
 }
