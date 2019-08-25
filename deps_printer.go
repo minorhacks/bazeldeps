@@ -49,9 +49,14 @@ func gitStashWithRestore() (func(), error) {
 		return func() {}, fmt.Errorf("can't stash: %v", err)
 	}
 	return func() {
-		_, err := gitCommand("stash", "pop").Output()
+		out, err := gitCommand("stash", "pop").CombinedOutput()
 		if err != nil {
-			glog.Exitf("failed to restore changed files: %v", err)
+			switch string(bytes.TrimSpace(out)) {
+			// Ignore the case where there are no local changes.
+			case "No stash entries found.":
+			default:
+				glog.Exitf("failed to restore changed files: %v", err)
+			}
 		}
 	}, nil
 }
