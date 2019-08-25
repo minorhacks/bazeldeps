@@ -37,14 +37,23 @@ func gitCurrentCheckout() (string, error) {
 	return matches[1], nil
 }
 
-func resolveCommitHash(commitish string) (string, error) {
-	cmd := exec.Command("git", "rev-parse", commitish)
+func gitCommand(args ...string) *exec.Cmd {
+	cmd := exec.Command("git", args...)
 	cmd.Dir = os.Getenv("BUILD_WORKSPACE_DIRECTORY")
-	out, err := cmd.Output()
+	return cmd
+}
+
+func gitStashWithRestore() (func(), error) {
+	_, err := gitCommand("stash").Output()
 	if err != nil {
-		return "", fmt.Errorf("can't resolve commitish %q: %v", commitish, err)
+		return func() {}, fmt.Errorf("can't stash: %v", err)
 	}
-	return string(bytes.TrimSpace(out)), nil
+	return func() {
+		_, err := gitCommand("stash", "pop").Output()
+		if err != nil {
+			glog.Exitf("failed to restore changed files: %v", err)
+		}
+	}, nil
 }
 
 func gitCheckoutWithRestore(commitish string) (func(), error) {
@@ -65,9 +74,7 @@ func gitCheckoutWithRestore(commitish string) (func(), error) {
 }
 
 func gitCheckout(commitish string) error {
-	cmd := exec.Command("git", "checkout", commitish)
-	cmd.Dir = os.Getenv("BUILD_WORKSPACE_DIRECTORY")
-	_, err := cmd.Output()
+	_, err := gitCommand("checkout", commitish).Output()
 	if err != nil {
 		return fmt.Errorf("can't checkout %q: %v", commitish, err)
 	}
@@ -90,7 +97,16 @@ func main() {
 	flag.Parse()
 	exitIf(checkFlags())
 
-	restore, err := gitCheckoutWithRestore("HEAD~1")
+	var restore func()
+	var err error
+	switch *diffTarget {
+	case "local_changes":
+		restore, err = gitStashWithRestore()
+	case "last_commits":
+		restore, err = gitCheckoutWithRestore("HEAD~1")
+	default:
+		glog.Exit("--diff_target=%q is not implemented", *diffTarget)
+	}
 	exitIf(err)
 	lastHashes, err := bazel.CalcTargetHashes([]string{"//..."})
 	exitIf(err)
