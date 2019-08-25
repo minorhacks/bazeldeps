@@ -1,6 +1,5 @@
 ---
 Language:        Cpp
-Language:        Proto
 # BasedOnStyle:  Google
 AccessModifierOffset: -1
 AlignAfterOpenBracket: Align

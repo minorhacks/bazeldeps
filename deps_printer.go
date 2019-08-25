@@ -44,7 +44,7 @@ func gitCommand(args ...string) *exec.Cmd {
 }
 
 func gitStashWithRestore() (func(), error) {
-	_, err := gitCommand("stash").Output()
+	_, err := gitCommand("stash", "--include-untracked").Output()
 	if err != nil {
 		return func() {}, fmt.Errorf("can't stash: %v", err)
 	}
