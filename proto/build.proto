@@ -452,13 +452,18 @@ message QueryResult {
   optional Configuration configuration = 2;
 }
 
+// ADDITIONS
+// For some reason, the following messages are not part of the proto found in
+// the Bazel repo
 message Configuration {
+  // Checksum of the configuration used (NOT the label itself)
   optional string checksum = 1;
 }
 
 message QueryResults {
   repeated QueryResult results = 2;
 }
+// END ADDITIONS
 
 ////////////////////////////////////////////////////////////////////////////
 // Messages dealing with querying the BUILD language itself. For now, this is

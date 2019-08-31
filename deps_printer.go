@@ -22,6 +22,9 @@ var (
 			"  `last_commits`: Diffs last commit against its predecessor")
 )
 
+// CurrentCheckout returns the current:
+// * branch name, if a branch is checked out
+// * commit hash, if in detached HEAD state
 func gitCurrentCheckout() (string, error) {
 	contents, err := ioutil.ReadFile(filepath.Join(os.Getenv("BUILD_WORKSPACE_DIRECTORY"), ".git", "HEAD"))
 	if err != nil {
@@ -32,17 +35,22 @@ func gitCurrentCheckout() (string, error) {
 	if len(matches) < 2 {
 		// Assuming this is a Git commit hash
 		// TODO: don't make this assumption; actually validate this
+		// See https://stackoverflow.com/a/19585361
 		return c, nil
 	}
 	return matches[1], nil
 }
 
+// gitCommand returns a git command rooted in the bazel source workspace
+// directory.
 func gitCommand(args ...string) *exec.Cmd {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = os.Getenv("BUILD_WORKSPACE_DIRECTORY")
 	return cmd
 }
 
+// StashWithRestore stashes uncommitted changes and returns a restore func that
+// will unstash said changes.
 func gitStashWithRestore() (func(), error) {
 	_, err := gitCommand("stash", "--include-untracked").Output()
 	if err != nil {
@@ -61,6 +69,9 @@ func gitStashWithRestore() (func(), error) {
 	}, nil
 }
 
+// CheckoutWithRestore performs a git checkout of the named committish and
+// returns a restore func that checks out the repo to its original
+// (branch/commit).
 func gitCheckoutWithRestore(commitish string) (func(), error) {
 	currentCheckout, err := gitCurrentCheckout()
 	if err != nil {
@@ -86,6 +97,8 @@ func gitCheckout(commitish string) error {
 	return nil
 }
 
+// diff returns entries in cur that are either new or different than those in
+// last. Missing entries in cur are ignored.
 func diff(last, cur map[string]uint32) map[string]uint32 {
 	diffs := map[string]uint32{}
 	for k, v := range cur {
