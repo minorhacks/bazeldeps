@@ -27,11 +27,11 @@ This approach has the following advantages:
 
 ## Try it
 
-`bazel run //:bazeldeps --diff_changes=local` - diff local changes against last
+`bazel run //:bazeldeps -- --diff_changes=local` - diff local changes against last
 commit on current branch. Performs `git stash` operations to save/restore local
 changes.
 
-`bazel run //:bazeldeps --diff_changes=last_commits` - diff changes between
+`bazel run //:bazeldeps -- --diff_changes=last_commits` - diff changes between
 most recent commit on current branch and its predecessor. Performs `git
 checkout` operations to save/restore current checkout.
 
