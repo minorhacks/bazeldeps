@@ -35,6 +35,10 @@ changes.
 most recent commit on current branch and its predecessor. Performs `git
 checkout` operations to save/restore current checkout.
 
+TODO: Some files/rules are ignored. Run with `--alsologtostderr` to see which
+files/rules these are. Rationale is they (probably) don't affect the build one
+way or the other.
+
 This repo contains a hierarchy of toy C++ dependencies to experiment with.
 
 ### File changes
