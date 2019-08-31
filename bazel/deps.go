@@ -121,6 +121,10 @@ func hashFile(h hash.Hash, path string) error {
 	return nil
 }
 
+// attrValue returns a string representation of an attribute value. This
+// transformation doesn't need to be reversible, but it does need to be
+// deterministic; dicts need to be sorted before serialization (although
+// ordered lists should not be).
 func attrValue(attr *bpb.Attribute) string {
 	switch attr.GetType() {
 	case bpb.Attribute_INTEGER:
