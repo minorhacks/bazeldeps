@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	diffTarget = flag.String("diff_target", "local_changes",
+	diffChanges = flag.String("diff_changes", "local",
 		"Changes to compare for affected target. Options are:\n"+
-			"  `local_changes`: Diffs local changes from last commit\n"+
+			"  `local`: Diffs local changes from last commit\n"+
 			"  `last_commits`: Diffs last commit against its predecessor")
 )
 
@@ -38,13 +38,13 @@ func main() {
 
 	var restore func()
 	var err error
-	switch *diffTarget {
-	case "local_changes":
+	switch *diffChanges {
+	case "local":
 		restore, err = git.StashWithRestore()
 	case "last_commits":
 		restore, err = git.CheckoutWithRestore("HEAD~1")
 	default:
-		glog.Exit("--diff_target=%q is not implemented", *diffTarget)
+		glog.Exit("--diff_target=%q is not implemented", *diffChanges)
 	}
 	exitIf(err)
 	lastHashes, err := bazel.CalcTargetHashes([]string{"//..."})
@@ -71,11 +71,11 @@ func exitIf(err error) {
 }
 
 func checkFlags() error {
-	switch *diffTarget {
-	case "local_changes":
+	switch *diffChanges {
+	case "local":
 	case "last_commits":
 	default:
-		return fmt.Errorf("--diff_target must be one of [local_changes, last_commits]")
+		return fmt.Errorf("--diff_target must be one of [local, last_commits]")
 	}
 	return nil
 }
