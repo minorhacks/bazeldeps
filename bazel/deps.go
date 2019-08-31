@@ -123,6 +123,17 @@ func hashFile(h hash.Hash, path string) error {
 
 func attrValue(attr *bpb.Attribute) string {
 	switch attr.GetType() {
+	case bpb.Attribute_INTEGER:
+		return strconv.FormatInt(int64(attr.GetIntValue()), 10)
+
+	case bpb.Attribute_INTEGER_LIST:
+		var s []string
+		for _, i := range attr.GetIntListValue() {
+			s = append(s, strconv.FormatInt(int64(i), 10))
+		}
+		// Assume that order matters here, so don't sort the strings
+		return strings.Join(s, ",")
+
 	case bpb.Attribute_BOOLEAN:
 		return strconv.FormatBool(attr.GetBooleanValue())
 
@@ -139,7 +150,7 @@ func attrValue(attr *bpb.Attribute) string {
 		bpb.Attribute_OUTPUT_LIST,
 		bpb.Attribute_DISTRIBUTION_SET:
 		val := attr.GetStringListValue()
-		val = sort.StringSlice(val)
+		// Assume that order matters here, so don't sort the strings
 		return strings.Join(val, ",")
 
 	case bpb.Attribute_STRING_DICT:
@@ -158,6 +169,14 @@ func attrValue(attr *bpb.Attribute) string {
 		}
 		return strings.Join(sort.StringSlice(pairs), ",")
 
+	case bpb.Attribute_LABEL_LIST_DICT:
+		val := attr.GetLabelListDictValue()
+		var pairs []string
+		for _, entry := range val {
+			pairs = append(pairs, entry.GetKey()+"="+strings.Join(entry.GetValue(), ":"))
+		}
+		return strings.Join(sort.StringSlice(pairs), ",")
+
 	case bpb.Attribute_LABEL_KEYED_STRING_DICT:
 		val := attr.GetLabelKeyedStringDictValue()
 		var pairs []string
@@ -166,16 +185,20 @@ func attrValue(attr *bpb.Attribute) string {
 		}
 		return strings.Join(sort.StringSlice(pairs), ",")
 
+	case bpb.Attribute_STRING_LIST_DICT:
+		val := attr.GetStringListDictValue()
+		var pairs []string
+		for _, entry := range val {
+			pairs = append(pairs, entry.GetKey()+"="+strings.Join(entry.GetValue(), ":"))
+		}
+		return strings.Join(sort.StringSlice(pairs), ",")
+
 	case bpb.Attribute_LICENSE:
 		// License changes shouldn't trigger a rebuild; don't include in the hash
 		return ""
 	default:
 		// TODO: Determine how to handle these cases
-		//case bpb.Attribute_INTEGER:
 		//case bpb.Attribute_FILESET_ENTRY_LIST:
-		//case bpb.Attribute_LABEL_LIST_DICT:
-		//case bpb.Attribute_STRING_LIST_DICT:
-		//case bpb.Attribute_INTEGER_LIST:
 		//case bpb.Attribute_UNKNOWN:
 		//case bpb.Attribute_SELECTOR_LIST:
 		//case bpb.Attribute_DEPRECATED_STRING_DICT_UNARY:
