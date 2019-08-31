@@ -55,8 +55,12 @@ func main() {
 
 	diffs := diff(lastHashes, currentHashes)
 
-	for n, h := range diffs {
-		fmt.Printf("%s=%d\n", n, h)
+	if len(diffs) == 0 {
+		fmt.Println("No changes detected")
+	} else {
+		for n, h := range diffs {
+			fmt.Printf("%s=%d\n", n, h)
+		}
 	}
 }
 
