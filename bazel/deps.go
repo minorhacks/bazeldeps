@@ -82,7 +82,7 @@ func sourcePathFromLabel(l string) string {
 	case strings.HasPrefix(l, "@"):
 		l = strings.Replace(l, "@", filepath.Join(executionRoot, "external")+"/", 1)
 	default:
-		l = strings.Replace(l, "//", WorkspaceRoot, -1)
+		l = strings.Replace(l, "//", WorkspaceRoot+"/", -1)
 	}
 	return strings.Replace(l, ":", "/", -1)
 }
@@ -142,6 +142,8 @@ func (n *TargetNode) GetHash() uint32 {
 	case bpb.Target_SOURCE_FILE:
 		path := sourcePathFromLabel(n.Target.GetSourceFile().GetName())
 		if err := hashFile(h, path); err != nil {
+			// TODO: This seems to happen with third-party deps that aren't actually
+			// dependencies and therefore aren't downloaded?
 			glog.Warning(err)
 		}
 	case bpb.Target_GENERATED_FILE:

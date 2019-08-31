@@ -11,6 +11,7 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//bazel:go_default_library",
+        "//git:go_default_library",
         "@com_github_golang_glog//:go_default_library",
         "@com_github_spf13_pflag//:go_default_library",
     ],
