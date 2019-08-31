@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
@@ -120,6 +121,68 @@ func hashFile(h hash.Hash, path string) error {
 	return nil
 }
 
+func attrValue(attr *bpb.Attribute) string {
+	switch attr.GetType() {
+	case bpb.Attribute_BOOLEAN:
+		return strconv.FormatBool(attr.GetBooleanValue())
+
+	case bpb.Attribute_TRISTATE:
+		return attr.GetTristateValue().String()
+
+	case bpb.Attribute_STRING,
+		bpb.Attribute_LABEL,
+		bpb.Attribute_OUTPUT:
+		return attr.GetStringValue()
+
+	case bpb.Attribute_STRING_LIST,
+		bpb.Attribute_LABEL_LIST,
+		bpb.Attribute_OUTPUT_LIST,
+		bpb.Attribute_DISTRIBUTION_SET:
+		val := attr.GetStringListValue()
+		val = sort.StringSlice(val)
+		return strings.Join(val, ",")
+
+	case bpb.Attribute_STRING_DICT:
+		val := attr.GetStringDictValue()
+		var pairs []string
+		for _, entry := range val {
+			pairs = append(pairs, entry.GetKey()+"="+entry.GetValue())
+		}
+		return strings.Join(sort.StringSlice(pairs), ",")
+
+	case bpb.Attribute_LABEL_DICT_UNARY:
+		val := attr.GetLabelDictUnaryValue()
+		var pairs []string
+		for _, entry := range val {
+			pairs = append(pairs, entry.GetKey()+"="+entry.GetValue())
+		}
+		return strings.Join(sort.StringSlice(pairs), ",")
+
+	case bpb.Attribute_LABEL_KEYED_STRING_DICT:
+		val := attr.GetLabelKeyedStringDictValue()
+		var pairs []string
+		for _, entry := range val {
+			pairs = append(pairs, entry.GetKey()+"="+entry.GetValue())
+		}
+		return strings.Join(sort.StringSlice(pairs), ",")
+
+	case bpb.Attribute_LICENSE:
+		// License changes shouldn't trigger a rebuild; don't include in the hash
+		return ""
+	default:
+		// TODO: Determine how to handle these cases
+		//case bpb.Attribute_INTEGER:
+		//case bpb.Attribute_FILESET_ENTRY_LIST:
+		//case bpb.Attribute_LABEL_LIST_DICT:
+		//case bpb.Attribute_STRING_LIST_DICT:
+		//case bpb.Attribute_INTEGER_LIST:
+		//case bpb.Attribute_UNKNOWN:
+		//case bpb.Attribute_SELECTOR_LIST:
+		//case bpb.Attribute_DEPRECATED_STRING_DICT_UNARY:
+		panic(fmt.Sprintf("unsupported attribute type: %v", attr.GetType()))
+	}
+}
+
 // GetHash returns a hash for the given TargetNode. If this hash changes, it is
 // assumed that the corresponding Target was affected by some change. Targets
 // are affected if source file contents change, or if rules' attributes or
@@ -138,7 +201,14 @@ func (n *TargetNode) GetHash() uint32 {
 	}
 	switch n.Target.GetType() {
 	case bpb.Target_RULE:
-		// TODO: Add rule attribute contents to hash
+		// Add rule attribute contents to hash
+		attrList := n.Target.GetRule().GetAttribute()
+		// Sort the attributes by name so they are added to the hash in a stable
+		// order
+		sort.Slice(attrList, func(i, j int) bool { return attrList[i].GetName() < attrList[j].GetName() })
+		for _, attr := range attrList {
+			fmt.Fprintf(h, "%s=%s", attr.GetName(), attrValue(attr))
+		}
 	case bpb.Target_SOURCE_FILE:
 		path := sourcePathFromLabel(n.Target.GetSourceFile().GetName())
 		if err := hashFile(h, path); err != nil {
