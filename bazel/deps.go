@@ -264,6 +264,8 @@ func (n *TargetNode) GetName() string {
 		return n.Target.GetSourceFile().GetName()
 	case bpb.Target_GENERATED_FILE:
 		return n.Target.GetGeneratedFile().GetName()
+	case bpb.Target_PACKAGE_GROUP:
+		return n.Target.GetPackageGroup().GetName()
 	default:
 		// TODO: do something more sane then panic here
 		panic(fmt.Sprintf("can't get name for type %s", n.Target.GetType()))
